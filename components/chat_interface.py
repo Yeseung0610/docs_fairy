@@ -78,7 +78,7 @@ def render_chat_interface():
     <style data-version="{random_id}">
     /* 전체 배경 및 기본 스타일 */
     .main .block-container {{
-        padding-top: 2rem;
+        padding-top: 0.5rem;
         max-width: 1000px;
         margin: 0 auto;
     }}

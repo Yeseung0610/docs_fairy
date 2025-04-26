@@ -77,17 +77,36 @@ def add_folder(folder_name):
         conn.close()
     return result
 
-def add_page(page_name, folder_id):
-    """새 페이지를 폴더에 추가합니다."""
+# def add_page(page_name, folder_id):
+#     """새 페이지를 폴더에 추가합니다."""
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+#     cursor.execute(
+#         "INSERT INTO pages (page_name, folder_id) VALUES (?, ?)",
+#         (page_name, folder_id)
+#     )
+#     conn.commit()
+#     conn.close()
+#     return True
+
+def add_page_with_content(page_name, folder_id, content=""):
+    """내용을 포함한 새 페이지를 폴더에 추가합니다."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO pages (page_name, folder_id) VALUES (?, ?)",
-        (page_name, folder_id)
-    )
-    conn.commit()
-    conn.close()
-    return True
+    try:
+        cursor.execute(
+            "INSERT INTO pages (page_name, folder_id, content) VALUES (?, ?, ?)",
+            (page_name, folder_id, content)
+        )
+        conn.commit()
+        # 방금 삽입한 페이지의 ID 반환
+        page_id = cursor.lastrowid
+        conn.close()
+        return page_id
+    except Exception as e:
+        print(f"페이지 추가 오류: {e}")
+        conn.close()
+        return None
 
 def update_page_content(page_id, content):
     """페이지의 내용을 갱신하여 저장합니다."""

@@ -1,5 +1,6 @@
 import streamlit as st
 import db
+import pdf_utils
 
 def render_sidebar():
     """사이드바: 폴더 및 페이지 관리 UI를 렌더링합니다."""
@@ -13,7 +14,7 @@ def render_sidebar():
     # 새 폴더 추가 버튼 - 접을 수 있는 영역으로 변경
     with st.sidebar.expander("+ 새 폴더 추가", expanded=False):
         with st.form(key="add_folder_form", clear_on_submit=True):
-            new_folder = st.text_input("폴더명", key="new_folder", placeholder="폴더 이름을 입력하세요")
+            new_folder = st.text_input("폴더명", key="new_folder", placeholder="폴더 이름을 입력하세요", label_visibility="collapsed")
             col1, col2 = st.columns([1, 1])
             with col1:
                 cancel = st.form_submit_button("취소")
@@ -74,16 +75,47 @@ def render_sidebar():
                         db.delete_page(page['id'])
                         st.rerun()
 
-            # 페이지 추가 UI 개선
+            # 페이지 추가 UI 개선 (PDF 업로드 기능 통합)
             with st.form(key=f"add_page_form_{fid}", clear_on_submit=True):
                 st.markdown("<p style='margin-top: 10px; font-weight: 500;'>새 페이지 추가</p>", unsafe_allow_html=True)
-                new_page = st.text_input("페이지 이름", key=f"new_page_{fid}", placeholder="페이지 이름 입력", label_visibility="collapsed")
-                if st.form_submit_button("추가", use_container_width=True):
-                    if new_page:
-                        db.add_page(new_page, fid)
-                        st.rerun()
-                    else:
+                new_page_name = st.text_input("페이지 이름", key=f"new_page_name_{fid}", placeholder="페이지 이름 입력", label_visibility="collapsed")
+                
+                # PDF 업로드 추가
+                uploaded_pdf = st.file_uploader(
+                    "(선택) PDF 업로드하여 회의록 생성", 
+                    type=["pdf"], 
+                    key=f"pdf_upload_{fid}",
+                    help="PDF 파일을 업로드하면 AI가 회의록 형식으로 내용을 채워줍니다."
+                )
+                
+                # 추가 버튼
+                submit_button = st.form_submit_button("추가", use_container_width=True)
+                
+                if submit_button:
+                    if not new_page_name:
                         st.error("페이지 이름을 입력해주세요.")
+                    elif uploaded_pdf:
+                        # PDF 파일이 있으면 회의록 생성
+                        with st.spinner("AI가 PDF를 분석하여 회의록을 생성 중입니다..."):
+                            meeting_notes = pdf_utils.process_pdf_to_meeting_notes(uploaded_pdf)
+                            page_id = db.add_page_with_content(new_page_name, fid, meeting_notes)
+                            if page_id:
+                                st.session_state.selected_page_id = page_id
+                                st.session_state.selected_folder_id = fid
+                                st.success(f"'{new_page_name}' 회의록이 생성되었습니다.")
+                                st.rerun()
+                            else:
+                                st.error("회의록 생성 중 오류가 발생했습니다.")
+                    else:
+                        # PDF 파일이 없으면 빈 페이지 생성
+                        page_id = db.add_page_with_content(new_page_name, fid, "")
+                        if page_id:
+                            st.session_state.selected_page_id = page_id
+                            st.session_state.selected_folder_id = fid
+                            st.success(f"빈 페이지 '{new_page_name}'가 추가되었습니다.")
+                            st.rerun()
+                        else:
+                            st.error("페이지 추가 중 오류가 발생했습니다.")
 
 
 def render_page_detail():

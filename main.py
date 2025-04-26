@@ -13,9 +13,9 @@ st.set_page_config(
 # 커스텀 CSS 적용 (전체 앱 레이아웃)
 st.markdown("""
 <style>
-    /* 좌우 여백 조정 */
+    /* 좌우 여백 조정 - 상단 패딩 제거 */
     .block-container {
-        padding-top: 1rem;
+        padding-top: 0rem !important;
         padding-left: 1.5rem;
         padding-right: 1.5rem;
     }
@@ -24,12 +24,27 @@ st.markdown("""
     [data-testid="stSidebar"] {
         background-color: #FAFAFA;
         border-right: 1px solid #EEEEEE;
-        padding-top: 1rem;
+        padding-top: 0rem;
     }
     
     /* 앱 제목 스타일링 */
     .appview-container .main .block-container {
         max-width: 100%;
+    }
+    
+    /* 헤더 영역 숨김 */
+    header {
+        visibility: hidden;
+    }
+    
+    /* 푸터 영역 숨김 */
+    footer {
+        visibility: hidden;
+    }
+    
+    /* "Made with Streamlit" 배너 숨김 */
+    .viewerBadge_container__r5tak {
+        display: none !important;
     }
     
     /* 스크롤바 스타일링 */
@@ -67,6 +82,9 @@ folder_management.render_sidebar()
 main_container = st.container()
 
 with main_container:
+    # # 회의록 생성기 표시 여부 확인 (제거됨)
+    # if st.session_state.get('show_meeting_notes_generator', False):
+    #     folder_management.render_meeting_notes_generator()
     # 페이지 선택 여부에 따라 상세 페이지 혹은 채팅 인터페이스 분기
     if 'selected_page_id' in st.session_state:
         folder_management.render_page_detail()
