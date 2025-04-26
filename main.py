@@ -7,33 +7,15 @@ st.set_page_config(
     page_title="My Task AI - 개인 업무 비서",
     page_icon="🧚‍♀️",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="expanded"
 )
-
-# CSS로 헤더, 메인메뉴, 푸터 숨기기
-hide_streamlit_style = """
-    <style>
-      header, footer, #MainMenu {
-        visibility: hidden;
-      }
-      /* 필요시 display: none; 으로 완전 제거 가능 */
-      /* header, footer, #MainMenu { display: none; } */
-    </style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # 커스텀 CSS 적용 (전체 앱 레이아웃)
 st.markdown("""
 <style>
-    header, footer, #MainMenu {
-      visibility: hidden;
-    }
-    /* 필요시 display: none; 으로 완전 제거 가능 */
-    /* header, footer, #MainMenu { display: none; } */
-
-    /* 좌우 여백 조정 */
+    /* 좌우 여백 조정 - 상단 패딩 제거 */
     .block-container {
-        padding-top: 1rem;
+        padding-top: 0rem !important;
         padding-left: 1.5rem;
         padding-right: 1.5rem;
     }
@@ -42,12 +24,27 @@ st.markdown("""
     [data-testid="stSidebar"] {
         background-color: #FAFAFA;
         border-right: 1px solid #EEEEEE;
-        padding-top: 1rem;
+        padding-top: 0rem;
     }
     
     /* 앱 제목 스타일링 */
     .appview-container .main .block-container {
         max-width: 100%;
+    }
+    
+    /* 헤더 영역 숨김 */
+    header {
+        visibility: hidden;
+    }
+    
+    /* 푸터 영역 숨김 */
+    footer {
+        visibility: hidden;
+    }
+    
+    /* "Made with Streamlit" 배너 숨김 */
+    .viewerBadge_container__r5tak {
+        display: none !important;
     }
     
     /* 스크롤바 스타일링 */

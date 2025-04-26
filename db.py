@@ -13,27 +13,51 @@ def initialize_db():
     """메인 테이블이 없으면 생성하고, 채팅용 테이블도 초기화합니다."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    # 폴더·페이지 테이블 생성
+
+    # folders 테이블
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS folders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         folder_name TEXT NOT NULL UNIQUE
     )
     ''')
+
+    # pages 테이블: 기존 schema에 date 열 추가
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS pages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         page_name TEXT NOT NULL,
         folder_id INTEGER NOT NULL,
         content TEXT DEFAULT '',
+        date TEXT DEFAULT '',
         FOREIGN KEY (folder_id) REFERENCES folders (id) ON DELETE CASCADE
     )
     ''')
+    # 이미 생성된 테이블에 date 열이 없으면 추가
+    cursor.execute("PRAGMA table_info(pages)")
+    cols = [row[1] for row in cursor.fetchall()]
+    if 'date' not in cols:
+        cursor.execute("ALTER TABLE pages ADD COLUMN date TEXT DEFAULT ''")
+
+    # chats, messages 테이블
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS chats (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_name TEXT NOT NULL UNIQUE
+    )
+    ''')
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_name TEXT NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        FOREIGN KEY (chat_name) REFERENCES chats (chat_name) ON DELETE CASCADE
+    )
+    ''')
+
     conn.commit()
     conn.close()
-
-    # 채팅용 테이블 생성
-    initialize_chat_db()
 
 def initialize_chat_db():
     """채팅 목록과 메시지 테이블을 생성합니다."""
@@ -51,28 +75,30 @@ def initialize_chat_db():
         chat_name TEXT NOT NULL,
         role TEXT NOT NULL,
         content TEXT NOT NULL,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (chat_name) REFERENCES chats (chat_name) ON DELETE CASCADE
     )
     ''')
     conn.commit()
     conn.close()
 
-# -------------- 폴더·페이지 CRUD --------------
+# — 폴더·페이지 CRUD — #
 
 def get_all_folders():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM folders ORDER BY folder_name")
-    folders = cursor.fetchall()
+    cursor.execute("SELECT * FROM folders ORDER BY id")
+    rows = cursor.fetchall()
     conn.close()
-    return folders
+    return [dict(r) for r in rows]
 
 def add_folder(folder_name):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("INSERT INTO folders (folder_name) VALUES (?)", (folder_name,))
+        cursor.execute(
+            "INSERT INTO folders (folder_name) VALUES (?)",
+            (folder_name,)
+        )
         conn.commit()
         result = True
     except sqlite3.IntegrityError:
@@ -83,30 +109,29 @@ def add_folder(folder_name):
 def delete_folder(folder_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM pages WHERE folder_id = ?", (folder_id,))
     cursor.execute("DELETE FROM folders WHERE id = ?", (folder_id,))
     conn.commit()
     conn.close()
     return True
 
-def get_pages_in_folder(folder_id):
+def get_folder_pages(folder_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT * FROM pages WHERE folder_id = ? ORDER BY page_name",
+        "SELECT * FROM pages WHERE folder_id = ? ORDER BY id",
         (folder_id,)
     )
-    pages = cursor.fetchall()
+    rows = cursor.fetchall()
     conn.close()
-    return pages
+    return [dict(r) for r in rows]
 
 def get_page(page_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM pages WHERE id = ?", (page_id,))
-    page = cursor.fetchone()
+    row = cursor.fetchone()
     conn.close()
-    return page
+    return dict(row) if row else None
 
 def add_page(page_name, folder_id):
     conn = get_db_connection()
@@ -114,6 +139,18 @@ def add_page(page_name, folder_id):
     cursor.execute(
         "INSERT INTO pages (page_name, folder_id) VALUES (?, ?)",
         (page_name, folder_id)
+    )
+    conn.commit()
+    conn.close()
+    return True
+
+def add_page_with_content(page_name, folder_id, content="", date=""):
+    """내용과 날짜를 포함한 새 페이지를 생성합니다."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO pages (page_name, folder_id, content, date) VALUES (?, ?, ?, ?)",
+        (page_name, folder_id, content, date)
     )
     conn.commit()
     conn.close()
@@ -138,32 +175,37 @@ def update_page_content(page_id, content):
     conn.close()
     return True
 
-# -------------- 채팅용 CRUD --------------
+def update_page_date(page_id, date):
+    """페이지의 기록 날짜를 업데이트합니다."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE pages SET date = ? WHERE id = ?",
+        (date, page_id)
+    )
+    conn.commit()
+    conn.close()
+    return True
+
+# — 채팅 CRUD — #
 
 def get_all_chats():
-    """모든 채팅 탭 이름을 생성 순서대로 반환합니다."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT chat_name FROM chats ORDER BY id")
     rows = cursor.fetchall()
     conn.close()
-    return [row['chat_name'] for row in rows]
+    return [r['chat_name'] for r in rows]
 
 def add_chat(chat_name):
-    """새 채팅 탭을 추가합니다. (이름 중복 시 False 반환)"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    try:
-        cursor.execute("INSERT INTO chats (chat_name) VALUES (?)", (chat_name,))
-        conn.commit()
-        result = True
-    except sqlite3.IntegrityError:
-        result = False
+    cursor.execute("INSERT INTO chats (chat_name) VALUES (?)", (chat_name,))
+    conn.commit()
     conn.close()
-    return result
+    return True
 
 def delete_chat(chat_name):
-    """채팅 탭과 해당 메시지를 모두 삭제합니다."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM messages WHERE chat_name = ?", (chat_name,))
@@ -173,7 +215,6 @@ def delete_chat(chat_name):
     return True
 
 def get_chat_messages(chat_name):
-    """특정 채팅 탭에 속한 메시지를 순서대로 반환합니다."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -182,10 +223,9 @@ def get_chat_messages(chat_name):
     )
     rows = cursor.fetchall()
     conn.close()
-    return [{"role": row['role'], "content": row['content']} for row in rows]
+    return [{"role": r["role"], "content": r["content"]} for r in rows]
 
 def add_message(chat_name, role, content):
-    """채팅 메시지를 기록합니다."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
