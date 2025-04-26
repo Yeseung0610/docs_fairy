@@ -48,8 +48,7 @@ def delete_chat(tab_name: str):
 
 
 def render_chat_interface():
-    st.title("My Task AI - 당신만을 위한 개인 업무 비서")
-    st.caption("문서 요정 🧚🏻‍♀️")
+    st.title("문서 요정 🧚🏻‍")
 
     rid = random.randint(1, 1_000_000)
     st.markdown(f"""

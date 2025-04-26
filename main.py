@@ -7,12 +7,30 @@ st.set_page_config(
     page_title="My Task AI - 개인 업무 비서",
     page_icon="🧚‍♀️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
+
+# CSS로 헤더, 메인메뉴, 푸터 숨기기
+hide_streamlit_style = """
+    <style>
+      header, footer, #MainMenu {
+        visibility: hidden;
+      }
+      /* 필요시 display: none; 으로 완전 제거 가능 */
+      /* header, footer, #MainMenu { display: none; } */
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # 커스텀 CSS 적용 (전체 앱 레이아웃)
 st.markdown("""
 <style>
+    header, footer, #MainMenu {
+      visibility: hidden;
+    }
+    /* 필요시 display: none; 으로 완전 제거 가능 */
+    /* header, footer, #MainMenu { display: none; } */
+
     /* 좌우 여백 조정 */
     .block-container {
         padding-top: 1rem;

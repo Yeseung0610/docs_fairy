@@ -5,7 +5,7 @@ def render_sidebar():
     """사이드바: 폴더 및 페이지 관리 UI를 렌더링합니다."""
     st.sidebar.markdown("""
     <div style="text-align: center; margin-bottom: 20px;">
-        <h2 style="color: #4B9FE1; font-weight: 600;">문서 관리</h2>
+        <h2 style="color: #4B9FE1; font-weight: 600;">내 폴더</h2>
         <p style="color: #888888; font-size: 14px;">업무 문서를 효율적으로 관리하세요</p>
     </div>
     """, unsafe_allow_html=True)
@@ -52,7 +52,7 @@ def render_sidebar():
             st.session_state.expanded_folders[fid] = True
 
             # 페이지가 없을 경우 메시지 표시
-            pages = db.get_folder_pages(fid)
+            pages = db.get_pages_in_folder(fid)
             if not pages:
                 st.info("페이지가 없습니다. 새 페이지를 추가해보세요!")
 
@@ -116,9 +116,7 @@ def render_page_detail():
 
     # 내용 편집 영역 개선
     with st.form(key="edit_page_form", clear_on_submit=False):
-        content = st.text_area("페이지 내용", value=page['content'], height=500, placeholder="문서 내용을 입력하세요...", label_visibility="collapsed")
-        col1, col2 = st.columns([4, 1])
-        with col2:
-            if st.form_submit_button("저장", use_container_width=True):
-                db.update_page_content(pid, content)
-                st.success("저장되었습니다.")
+        content = st.text_area("페이지 내용", value=page['content'], height=400)
+        if st.form_submit_button("저장"):
+            db.update_page_content(pid, content)
+            st.success("저장되었습니다.")
