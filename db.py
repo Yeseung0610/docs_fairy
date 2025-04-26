@@ -5,15 +5,15 @@ def get_db_connection():
     """데이터베이스 연결을 생성하여 반환합니다."""
     if not os.path.exists('data'):
         os.makedirs('data')
-    conn = sqlite3.connect('data/task_assistant.db')
+    conn = sqlite3.connect('data/task_assistant.db', check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
 def initialize_db():
     """메인 테이블이 없으면 생성하고, 채팅용 테이블도 초기화합니다."""
-    # 기존 폴더·페이지 테이블 생성
     conn = get_db_connection()
     cursor = conn.cursor()
+    # 폴더·페이지 테이블 생성
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS folders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,10 +58,9 @@ def initialize_chat_db():
     conn.commit()
     conn.close()
 
-# -------------- 기존 폴더·페이지 CRUD 함수 유지 --------------
+# -------------- 폴더·페이지 CRUD --------------
 
 def get_all_folders():
-    """모든 폴더를 이름순으로 반환합니다."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM folders ORDER BY folder_name")
@@ -70,7 +69,6 @@ def get_all_folders():
     return folders
 
 def add_folder(folder_name):
-    """새 폴더를 추가합니다. (이름 중복 시 False 반환)"""
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -83,7 +81,6 @@ def add_folder(folder_name):
     return result
 
 def delete_folder(folder_id):
-    """폴더 및 그 하위 페이지를 모두 삭제합니다."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM pages WHERE folder_id = ?", (folder_id,))
@@ -92,8 +89,7 @@ def delete_folder(folder_id):
     conn.close()
     return True
 
-def get_folder_pages(folder_id):
-    """특정 폴더의 페이지 목록을 이름순으로 반환합니다."""
+def get_pages_in_folder(folder_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -105,7 +101,6 @@ def get_folder_pages(folder_id):
     return pages
 
 def get_page(page_id):
-    """단일 페이지 정보를 반환합니다."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM pages WHERE id = ?", (page_id,))
@@ -114,7 +109,6 @@ def get_page(page_id):
     return page
 
 def add_page(page_name, folder_id):
-    """새 페이지를 폴더에 추가합니다."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -125,8 +119,15 @@ def add_page(page_name, folder_id):
     conn.close()
     return True
 
+def delete_page(page_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM pages WHERE id = ?", (page_id,))
+    conn.commit()
+    conn.close()
+    return True
+
 def update_page_content(page_id, content):
-    """페이지의 내용을 갱신하여 저장합니다."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -137,16 +138,7 @@ def update_page_content(page_id, content):
     conn.close()
     return True
 
-def delete_page(page_id):
-    """페이지를 삭제합니다."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM pages WHERE id = ?", (page_id,))
-    conn.commit()
-    conn.close()
-    return True
-
-# -------------- 채팅용 CRUD 함수 추가 --------------
+# -------------- 채팅용 CRUD --------------
 
 def get_all_chats():
     """모든 채팅 탭 이름을 생성 순서대로 반환합니다."""
@@ -181,7 +173,7 @@ def delete_chat(chat_name):
     return True
 
 def get_chat_messages(chat_name):
-    """특정 채팅 탭에 속한 메시지들을 순서대로 반환합니다."""
+    """특정 채팅 탭에 속한 메시지를 순서대로 반환합니다."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(

@@ -19,7 +19,7 @@ def get_openai_client():
 def get_ai_response(messages):
     """Get a response from the OpenAI API"""
     client = get_openai_client()
-    
+
     try:
         response = client.chat.completions.create(
             model=MODEL,

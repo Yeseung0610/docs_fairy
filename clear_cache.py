@@ -6,5 +6,4 @@ import streamlit as st
 if os.path.exists(".streamlit/cache"):
     shutil.rmtree(".streamlit/cache")
 
-# Clear browser cachefdsafsd
 st.write("Cache cleared. Please refresh your browser.")
