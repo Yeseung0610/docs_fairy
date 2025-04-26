@@ -84,7 +84,10 @@ def render_chat_interface():
                         for col, (title, pid) in zip(cols, refs):
                             with col:
                                 if st.button(f"🔗 {title} 바로가기", key=f"nav_{tab_name}_{idx}_{pid}"):
-                                    st.session_state.selected_page_id = int(pid)
+                                    selected_id = int(pid)
+                                    st.session_state.selected_page_id = selected_id
+                                    page = db.get_page(selected_id)
+                                    st.session_state.selected_folder_id = page['folder_id']
                                     st.rerun()
 
             user_input = st.chat_input("메시지를 입력하세요…", key=f"input_{tab_name}")
@@ -97,7 +100,7 @@ def render_chat_interface():
             # 시스템 메시지: 페이지 내용과 형식 지침 포함
             page_records = []
             for f in db.get_all_folders():
-                page_records.extend(db.get_pages_in_folder(f['id']))
+                page_records.extend(db.get_folder_pages(f['id']))
             docs = []
             for p in page_records:
                 name = p['page_name']

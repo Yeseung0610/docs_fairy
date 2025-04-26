@@ -53,7 +53,7 @@ def render_sidebar():
             st.session_state.expanded_folders[fid] = True
 
             # 페이지가 없을 경우 메시지 표시
-            pages = db.get_pages_in_folder(fid)
+            pages = db.get_folder_pages(fid)
             if not pages:
                 st.info("페이지가 없습니다. 새 페이지를 추가해보세요!")
 
