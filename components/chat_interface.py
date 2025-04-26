@@ -4,7 +4,6 @@ import db
 import random
 import re
 
-
 def initialize_chat():
     # DB에서 채팅 탭과 메시지를 로드하여 세션 상태에 저장
     if 'chat_tabs' not in st.session_state:
@@ -49,8 +48,7 @@ def delete_chat(tab_name: str):
 
 
 def render_chat_interface():
-    st.title("My Task AI - 당신만을 위한 개인 업무 비서")
-    st.caption("문서 요정 🧚🏻‍♀️")
+    st.title("문서 요정 🧚🏻‍")
 
     rid = random.randint(1, 1_000_000)
     st.markdown(f"""
