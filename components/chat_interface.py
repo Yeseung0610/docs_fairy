@@ -1,210 +1,120 @@
 import streamlit as st
 import openai_api
-import random  # Add randomness to force CSS refresh
+import db
+import random
 import re
 
 def initialize_chat():
-    """Initialize the chat session state if not already done"""
-    if 'messages' not in st.session_state:
-        st.session_state.messages = []
-    
-    # Initialize chat tabs
+    """DB에서 채팅 탭과 메시지를 로드하여 세션 상태에 저장합니다."""
     if 'chat_tabs' not in st.session_state:
+        chats = db.get_all_chats()
+        if not chats:
+            # 기본 탭이 없으면 생성
+            db.add_chat("일반 대화")
+            chats = db.get_all_chats()
+        # 채팅 탭별 메시지 로드
         st.session_state.chat_tabs = {
-            "일반 대화": []
+            chat_name: db.get_chat_messages(chat_name)
+            for chat_name in chats
         }
-    
-    # Initialize current tab
     if 'current_tab' not in st.session_state:
-        st.session_state.current_tab = "일반 대화"
-        
-    # Migrate old messages to the tab system if needed
-    if st.session_state.messages and not st.session_state.chat_tabs["일반 대화"]:
-        st.session_state.chat_tabs["일반 대화"] = st.session_state.messages.copy()
+        # 첫 번째 탭(가장 왼쪽)을 기본 활성 탭으로 설정
+        st.session_state.current_tab = list(st.session_state.chat_tabs.keys())[0]
 
 def add_new_chat():
-    """Add a new chat tab"""
+    """새 채팅 탭을 추가하고 DB에도 기록합니다."""
     new_tab_name = f"새 대화 {len(st.session_state.chat_tabs) + 1}"
-    st.session_state.chat_tabs[new_tab_name] = []
-    st.session_state.current_tab = new_tab_name
-    
+    if db.add_chat(new_tab_name):
+        st.session_state.chat_tabs[new_tab_name] = []
+        st.session_state.current_tab = new_tab_name
+
 def delete_chat(tab_name):
-    """Delete a chat tab"""
-    if tab_name in st.session_state.chat_tabs:
-        # Delete the tab
+    """채팅 탭을 삭제하고 DB에서도 제거합니다."""
+    if db.delete_chat(tab_name):
         del st.session_state.chat_tabs[tab_name]
-        
-        # Set current tab to the first tab if the deleted tab was the current tab
+        # 삭제된 탭이 활성 탭이었으면, 남은 첫 번째 탭을 활성으로
         if tab_name == st.session_state.current_tab:
-            if st.session_state.chat_tabs:
-                st.session_state.current_tab = list(st.session_state.chat_tabs.keys())[0]
+            remaining = list(st.session_state.chat_tabs.keys())
+            if remaining:
+                st.session_state.current_tab = remaining[0]
             else:
-                # If no tabs left, create a new default tab
+                # 모두 삭제됐으면 기본 탭 복구
+                db.add_chat("일반 대화")
                 st.session_state.chat_tabs = {"일반 대화": []}
                 st.session_state.current_tab = "일반 대화"
-    
+
 def highlight_important_info(text):
-    """Highlight links, important phrases and data in AI response"""
-    # Highlight URLs with markdown syntax
+    """AI 응답 내 중요 정보에 하이라이트를 적용합니다."""
     text = re.sub(r'(https?://[^\s]+)', r'[링크](\1)', text)
-    
-    # Highlight important keywords with bold
     keywords = ["중요", "주의", "필수", "핵심", "요약", "결론"]
-    for keyword in keywords:
-        text = re.sub(f'({keyword}[:\\s])', r'**\1**', text)
-    
-    # Highlight data points and numbers
-    text = re.sub(r'(\d+\.?\d*\s*%)', r'**\1**', text) # Percentages
-    text = re.sub(r'(\d{4}-\d{2}-\d{2})', r'**\1**', text) # Dates
-    
+    for kw in keywords:
+        text = re.sub(f'({kw}[:\\s])', r'**\1**', text)
+    text = re.sub(r'(\d+\.?\d*\s*%)', r'**\1**', text)
+    text = re.sub(r'(\d{4}-\d{2}-\d{2})', r'**\1**', text)
     return text
-    
+
 def render_chat_interface():
-    """Render the main chat interface"""
-    # Title and subtitle
+    """메인 영역에 탭 방식의 채팅 UI를 렌더링합니다."""
     st.title("My Task AI - 당신만을 위한 개인 업무 비서")
     st.caption("문서 요정 🧚🏻‍♀️")
-    
-    # Force all CSS cache to refresh
-    random_id = random.randint(1, 1000000)
-    
-    # Apply custom CSS for the chat interface
+
+    # CSS 캐시 강제 갱신 ID
+    random_id = random.randint(1, 1_000_000)
     st.markdown(f"""
     <style data-version="{random_id}">
-    /* Hide default avatar images */
-    [data-testid="StChatMessageAvatar"] > div > img {{
-        display: none !important;
-    }}
-    
-    /* User avatar styling */
-    .element-container .stChatMessage.user [data-testid="StChatMessageAvatar"] {{
-        background-color: #D1F5F0 !important;
-        border: 2px solid #FFFFFF !important;
-    }}
-    
-    .element-container .stChatMessage.user [data-testid="StChatMessageAvatar"]::after {{
-        content: "👤";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 20px;
-    }}
-    
-    /* Assistant avatar styling */
-    .element-container .stChatMessage.assistant [data-testid="StChatMessageAvatar"] {{
-        background-color: #FFFFFF !important;
-        border: 1px solid #F0F2F6 !important;
-    }}
-    
-    .element-container .stChatMessage.assistant [data-testid="StChatMessageAvatar"]::after {{
-        content: "🧚🏻‍♀️";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 20px;
-    }}
-    
-    /* Style for highlighted information */
-    .highlighted {{
-        background-color: #FFEFD5;
-        padding: 2px 4px;
-        border-radius: 3px;
-    }}
+      [data-testid="StChatMessageAvatar"] > div > img {{ display: none!important; }}
+      .highlighted {{ background-color: #FFEFD5; padding: 2px 4px; border-radius: 3px; }}
     </style>
     """, unsafe_allow_html=True)
-    
-    # Clear existing cache
     st.markdown(f"""
     <script data-version="{random_id}">
-    document.querySelectorAll('style:not([data-version="{random_id}"])').forEach(el => {{
-        if (el.innerHTML.includes('StChatMessageAvatar')) {{
-            el.remove();
-        }}
-    }});
+      document.querySelectorAll('style:not([data-version="{random_id}"])').forEach(el => {{
+        if (el.innerHTML.includes('StChatMessageAvatar')) {{ el.remove(); }}
+      }});
     </script>
     """, unsafe_allow_html=True)
-    
-    # Chat tabs
-    tab_cols = st.columns([0.7, 0.3])
-    all_tabs = list(st.session_state.chat_tabs.keys())
-    
-    with tab_cols[0]:
-        # Create tabs
-        tabs = st.tabs(all_tabs)
-        
-        # Find index of current tab
-        current_tab_index = all_tabs.index(st.session_state.current_tab)
-        
-        # Set up tab switching
-        for i, tab_name in enumerate(all_tabs):
-            with tabs[i]:
-                col1, col2 = st.columns([0.8, 0.2])
-                with col1:
-                    if st.session_state.current_tab != tab_name and st.button(f"대화 {i+1} 선택", key=f"select_tab_{i}"):
-                        st.session_state.current_tab = tab_name
-                        st.rerun()
-                
-                # Add delete button (don't allow deleting the last tab)
-                with col2:
-                    if len(st.session_state.chat_tabs) > 1 and st.button("🗑️", key=f"delete_tab_{i}"):
-                        delete_chat(tab_name)
-                        st.rerun()
-    
-    with tab_cols[1]:
-        if st.button("💬 새 대화 추가", key="add_new_chat"):
+
+    # 새 대화 / 대화 삭제 버튼 (삭제 버튼 우측 정렬)
+    col_add, col_del = st.columns([0.9, 0.1], gap="small")
+    with col_add:
+        if st.button("➕ 새 대화", key="add_new_chat"):
             add_new_chat()
             st.rerun()
-            
-    # Reset current chat button
-    if st.button("대화 기록 초기화"):
-        st.session_state.chat_tabs[st.session_state.current_tab] = []
-        st.rerun()
-    
-    # Display chat messages for the current tab
-    with tabs[current_tab_index]:
-        # Reference to the messages in the current tab
-        messages = st.session_state.chat_tabs[st.session_state.current_tab]
-        
-        # Chat container to control the flow
-        chat_container = st.container()
-        
-        # Input container (at the bottom)
-        input_container = st.container()
-        
-        # Put the chat input at the bottom
-        with input_container:
-            user_input = st.chat_input("무엇이든 물어보세요")
-        
-        # Display messages (flowing upward)
-        with chat_container:
-            # Reverse messages for display to show newest at the bottom
-            for i, message in enumerate(messages):
-                if message["role"] == "user":
-                    with st.chat_message("user"):
-                        st.write(message["content"])
-                else:
-                    with st.chat_message("assistant"):
-                        st.markdown(message["content"], unsafe_allow_html=True)
-        
-        # Process user input (if any)
-        if user_input:
-            # Add user message to chat history
-            messages.append({"role": "user", "content": user_input})
-            
-            # Get AI response
-            with st.spinner("AI가 응답 중입니다..."):
-                # Need to convert to regular list format for API call
-                api_messages = [{"role": m["role"], "content": m["content"]} for m in messages]
-                ai_response = openai_api.get_ai_response(api_messages)
-                
-                # Highlight important information
-                highlighted_response = highlight_important_info(ai_response)
-                
-                # Add AI response to chat history (with highlighting)
-                messages.append({"role": "assistant", "content": highlighted_response})
-                
-            # Update the chat tab data and refresh
-            st.session_state.chat_tabs[st.session_state.current_tab] = messages
+    with col_del:
+        if len(st.session_state.chat_tabs) > 1 and st.button("🗑️", key="delete_current_chat"):
+            delete_chat(st.session_state.current_tab)
             st.rerun()
+
+    # 탭을 생성 (새로 만든 탭은 dict 삽입 순서대로 오른쪽에 위치)
+    all_tabs = list(st.session_state.chat_tabs.keys())
+    tabs = st.tabs(all_tabs)
+
+    # 각 탭 컨테이너에서 대화 내용을 렌더링
+    for tab_container, tab_name in zip(tabs, all_tabs):
+        with tab_container:
+            st.session_state.current_tab = tab_name
+            messages = st.session_state.chat_tabs[tab_name]
+
+            # 기존 메시지 출력
+            for msg in messages:
+                st.chat_message(msg["role"]).markdown(msg["content"], unsafe_allow_html=True)
+
+            # 사용자 입력
+            user_input = st.chat_input("메시지를 입력하세요…", key=f"input_{tab_name}")
+            if user_input:
+                # 유저 메시지 세션과 DB 저장
+                messages.append({"role": "user", "content": user_input})
+                db.add_message(tab_name, "user", user_input)
+
+                # AI 응답 생성 및 저장
+                with st.spinner("AI가 응답 중입니다..."):
+                    api_payload = [{"role": m["role"], "content": m["content"]} for m in messages]
+                    ai_resp = openai_api.get_ai_response(api_payload)
+                    highlighted = highlight_important_info(ai_resp)
+
+                messages.append({"role": "assistant", "content": highlighted})
+                db.add_message(tab_name, "assistant", highlighted)
+
+                # 세션 상태 업데이트 후 리런
+                st.session_state.chat_tabs[tab_name] = messages
+                st.rerun()
