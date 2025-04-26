@@ -3,7 +3,7 @@ import base64
 import tempfile
 from openai_api import get_openai_client, MODEL
 
-def process_pdf_to_meeting_notes(uploaded_file):
+def process_pdf_to_meeting_notes(uploaded_file, docs_type):
     """
     업로드된 PDF 파일을 처리하여 OpenAI API를 통해 회의록 형식으로 변환합니다.
     (상세 프롬프트 및 responses.create 엔드포인트 사용)
@@ -17,7 +17,13 @@ def process_pdf_to_meeting_notes(uploaded_file):
     client = get_openai_client()
     
     # 상세 프롬프트 템플릿 (한국어, 회의록 전문가 역할 부여)
-    prompt_text = f"""
+    prompt_text = ""
+    if docs_type == "문서":
+        prompt_text = f"""
+당신은 제공된 PDF 문서의 분석하여 가능한 한 원문의 내용을 유지하여 기술하는 문서 작성 전문가이다. 문서에 기재된 내용을 충실히 반영하되, 가독성을 위해 문단 구분이나 리스트 표시는 허용된다. 추가 해석이나 삭제은 하지말고, 마크다운을 사용해서 표시하라.
+"""
+    else:
+        prompt_text = f"""
 당신은 제공된 PDF 문서의 핵심 정보를 전문적인 회의록 형식으로 요약하는 임무를 맡은 숙련된 회의록 작성 전문가입니다.
 
 문서를 분석하여 다음 정보를 추출하고, 마크다운을 사용하여 명확하게 구조화해주세요:

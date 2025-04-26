@@ -133,24 +133,24 @@ def get_page(page_id):
     conn.close()
     return dict(row) if row else None
 
-def add_page(page_name, folder_id):
+def add_page(page_name, folder_id, date_str):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO pages (page_name, folder_id) VALUES (?, ?)",
-        (page_name, folder_id)
+        "INSERT INTO pages (page_name, folder_id, date) VALUES (?, ?)",
+        (page_name, folder_id, date_str)
     )
     conn.commit()
     conn.close()
     return True
 
-def add_page_with_content(page_name, folder_id, content="", date=""):
+def add_page_with_content(page_name, folder_id, content="", date_str=""):
     """내용과 날짜를 포함한 새 페이지를 생성합니다."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
         "INSERT INTO pages (page_name, folder_id, content, date) VALUES (?, ?, ?, ?)",
-        (page_name, folder_id, content, date)
+        (page_name, folder_id, content, date_str)
     )
     conn.commit()
     conn.close()
