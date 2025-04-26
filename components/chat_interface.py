@@ -133,7 +133,7 @@ def render_chat_interface():
                     ai_resp = openai_api.get_ai_response(api_payload)
                     highlighted = highlight_important_info(ai_resp)
 
-                # AI 메시지 저장 및 상태 갱신
+                # AI 메시지 저장 및 상태 갱신fadsfsdfdsaf
                 messages.append({"role": "assistant", "content": highlighted})
                 st.session_state.chat_tabs[tab_name] = messages
                 st.rerun()
