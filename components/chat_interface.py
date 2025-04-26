@@ -4,7 +4,6 @@ import db
 import random
 import re
 
-
 def initialize_chat():
     # DB에서 채팅 탭과 메시지를 로드하여 세션 상태에 저장
     if 'chat_tabs' not in st.session_state:
