@@ -1,6 +1,6 @@
 import streamlit as st
 import openai_api
-import random  # Add randomness to force CSS refresh
+import random
 import re
 
 def initialize_chat():
@@ -61,9 +61,14 @@ def highlight_important_info(text):
     
 def render_chat_interface():
     """Render the main chat interface"""
-    # Title and subtitle
-    st.title("My Task AI - 당신만을 위한 개인 업무 비서")
-    st.caption("문서 요정 🧚🏻‍♀️")
+    # Title with improved design
+    st.markdown("""
+    <div style="text-align: center; padding: 10px 0 20px 0;">
+        <h1 style="color: #4B9FE1; margin-bottom: 5px;">My Task AI</h1>
+        <p style="color: #888888; font-size: 16px; margin-top: 0;">당신만을 위한 개인 업무 비서</p>
+        <div style="font-size: 24px; margin: 10px 0;">🧚🏻‍♀️</div>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Force all CSS cache to refresh
     random_id = random.randint(1, 1000000)
@@ -71,6 +76,33 @@ def render_chat_interface():
     # Apply custom CSS for the chat interface
     st.markdown(f"""
     <style data-version="{random_id}">
+    /* 전체 배경 및 기본 스타일 */
+    .main .block-container {{
+        padding-top: 2rem;
+        max-width: 1000px;
+        margin: 0 auto;
+    }}
+    
+    /* 채팅 메시지 스타일링 */
+    [data-testid="stChatMessage"] {{
+        border-radius: 12px !important;
+        border: 1px solid #f0f2f6 !important;
+        padding: 0.5rem 1rem !important;
+        margin-bottom: 1rem !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important;
+        transition: all 0.2s ease !important;
+    }}
+    
+    /* 사용자 메시지 스타일링 */
+    .element-container .stChatMessage.user [data-testid="StChatMessageContent"] {{
+        background-color: #EBF5FF !important;
+    }}
+    
+    /* AI 메시지 스타일링 */
+    .element-container .stChatMessage.assistant [data-testid="StChatMessageContent"] {{
+        background-color: #FFFFFF !important;
+    }}
+    
     /* Hide default avatar images */
     [data-testid="StChatMessageAvatar"] > div > img {{
         display: none !important;
@@ -80,6 +112,7 @@ def render_chat_interface():
     .element-container .stChatMessage.user [data-testid="StChatMessageAvatar"] {{
         background-color: #D1F5F0 !important;
         border: 2px solid #FFFFFF !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
     }}
     
     .element-container .stChatMessage.user [data-testid="StChatMessageAvatar"]::after {{
@@ -95,6 +128,7 @@ def render_chat_interface():
     .element-container .stChatMessage.assistant [data-testid="StChatMessageAvatar"] {{
         background-color: #FFFFFF !important;
         border: 1px solid #F0F2F6 !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
     }}
     
     .element-container .stChatMessage.assistant [data-testid="StChatMessageAvatar"]::after {{
@@ -104,6 +138,42 @@ def render_chat_interface():
         left: 50%;
         transform: translate(-50%, -50%);
         font-size: 20px;
+    }}
+    
+    /* 탭 스타일링 */
+    .stTabs [data-baseweb="tab-list"] {{
+        gap: 8px;
+    }}
+    
+    .stTabs [data-baseweb="tab"] {{
+        border-radius: 8px;
+        padding: 8px 16px;
+        background-color: #f0f2f6;
+    }}
+    
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {{
+        background-color: #4B9FE1;
+        color: white;
+    }}
+    
+    /* 버튼 스타일링 */
+    .stButton button {{
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }}
+    
+    .stButton button:hover {{
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }}
+    
+    /* 입력 필드 스타일링 */
+    [data-testid="stChatInput"] {{
+        border-radius: 20px;
+        border: 1px solid #E0E4E8;
+        padding: 8px 16px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }}
     
     /* Style for highlighted information */
@@ -126,60 +196,79 @@ def render_chat_interface():
     </script>
     """, unsafe_allow_html=True)
     
-    # Chat tabs
-    tab_cols = st.columns([0.7, 0.3])
-    all_tabs = list(st.session_state.chat_tabs.keys())
-    
-    with tab_cols[0]:
-        # Create tabs
-        tabs = st.tabs(all_tabs)
+    # 대화 관리 영역
+    with st.container():
+        # 상단 탭 및 컨트롤 행
+        col1, col2 = st.columns([7, 3])
         
-        # Find index of current tab
-        current_tab_index = all_tabs.index(st.session_state.current_tab)
-        
-        # Set up tab switching
-        for i, tab_name in enumerate(all_tabs):
-            with tabs[i]:
-                col1, col2 = st.columns([0.8, 0.2])
-                with col1:
-                    if st.session_state.current_tab != tab_name and st.button(f"대화 {i+1} 선택", key=f"select_tab_{i}"):
-                        st.session_state.current_tab = tab_name
-                        st.rerun()
-                
-                # Add delete button (don't allow deleting the last tab)
-                with col2:
-                    if len(st.session_state.chat_tabs) > 1 and st.button("🗑️", key=f"delete_tab_{i}"):
-                        delete_chat(tab_name)
-                        st.rerun()
-    
-    with tab_cols[1]:
-        if st.button("💬 새 대화 추가", key="add_new_chat"):
-            add_new_chat()
-            st.rerun()
+        with col1:
+            # 탭 생성 (모던한 디자인)
+            all_tabs = list(st.session_state.chat_tabs.keys())
+            # 탭 스타일을 더 시각적으로 구분되게 만들기
+            tabs = st.tabs(all_tabs)
             
-    # Reset current chat button
-    if st.button("대화 기록 초기화"):
-        st.session_state.chat_tabs[st.session_state.current_tab] = []
-        st.rerun()
+            # 현재 탭 인덱스 찾기
+            current_tab_index = all_tabs.index(st.session_state.current_tab)
+        
+        with col2:
+            # 대화 관리 버튼들
+            button_cols = st.columns([1, 1])
+            with button_cols[0]:
+                if st.button("💬 새 대화", key="add_new_chat", use_container_width=True):
+                    add_new_chat()
+                    st.rerun()
+            
+            with button_cols[1]:
+                if st.button("🗑️ 대화 초기화", key="reset_chat", use_container_width=True):
+                    st.session_state.chat_tabs[st.session_state.current_tab] = []
+                    st.rerun()
     
-    # Display chat messages for the current tab
+    # 구분선 추가
+    st.markdown("<hr style='margin: 15px 0; border: none; height: 1px; background-color: #f0f0f0;'>", unsafe_allow_html=True)
+    
+    # 현재 선택된 탭의 내용 표시
     with tabs[current_tab_index]:
-        # Reference to the messages in the current tab
+        # 현재 탭의 메시지 참조
         messages = st.session_state.chat_tabs[st.session_state.current_tab]
         
-        # Chat container to control the flow
+        # 탭 컨트롤 (이름 변경, 삭제 등)
+        tab_control_cols = st.columns([4, 1])
+        with tab_control_cols[0]:
+            st.markdown(f"<p style='color: #888888; margin-bottom: 10px;'>현재 대화: <b>{st.session_state.current_tab}</b></p>", unsafe_allow_html=True)
+            
+        with tab_control_cols[1]:
+            # 탭 삭제 버튼 (마지막 탭은 삭제 불가)
+            if len(st.session_state.chat_tabs) > 1 and st.button("삭제", key=f"delete_tab_{current_tab_index}", use_container_width=True):
+                delete_chat(st.session_state.current_tab)
+                st.rerun()
+        
+        # 채팅 컨테이너 (스크롤 가능)
         chat_container = st.container()
         
-        # Input container (at the bottom)
+        # 입력 컨테이너 (화면 하단에 고정)
         input_container = st.container()
         
-        # Put the chat input at the bottom
+        # 채팅 입력창 (하단에 배치)
         with input_container:
-            user_input = st.chat_input("무엇이든 물어보세요")
+            # chat_input에는 label 매개변수가 없어서 다른 방식으로 접근성 지원
+            # st.chat_input API는 placeholder만 지원하므로 
+            # 숨겨진 label 요소를 추가하여 스크린 리더 접근성 지원
+            st.markdown('<label for="chat_input" style="display: none;">채팅 메시지 입력</label>', unsafe_allow_html=True)
+            user_input = st.chat_input("무엇이든 물어보세요", key="chat_input")
         
-        # Display messages (flowing upward)
+        # 대화 내용 표시
         with chat_container:
-            # Reverse messages for display to show newest at the bottom
+            if not messages:
+                # 비어있는 대화일 경우 가이드 텍스트 표시
+                st.markdown("""
+                <div style="text-align: center; padding: 40px 20px; color: #888888;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">👋</div>
+                    <h3>반갑습니다!</h3>
+                    <p>업무에 도움이 필요하신가요? 무엇이든 물어보세요.</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # 대화 메시지 표시 (최신 메시지가 하단에 오도록)
             for i, message in enumerate(messages):
                 if message["role"] == "user":
                     with st.chat_message("user"):
@@ -188,23 +277,23 @@ def render_chat_interface():
                     with st.chat_message("assistant"):
                         st.markdown(message["content"], unsafe_allow_html=True)
         
-        # Process user input (if any)
+        # 사용자 입력 처리
         if user_input:
-            # Add user message to chat history
+            # 사용자 메시지를 대화 기록에 추가
             messages.append({"role": "user", "content": user_input})
             
-            # Get AI response
+            # AI 응답 얻기
             with st.spinner("AI가 응답 중입니다..."):
-                # Need to convert to regular list format for API call
+                # API 호출 형식으로 변환
                 api_messages = [{"role": m["role"], "content": m["content"]} for m in messages]
                 ai_response = openai_api.get_ai_response(api_messages)
                 
-                # Highlight important information
+                # 중요 정보 강조
                 highlighted_response = highlight_important_info(ai_response)
                 
-                # Add AI response to chat history (with highlighting)
+                # AI 응답을 대화 기록에 추가
                 messages.append({"role": "assistant", "content": highlighted_response})
                 
-            # Update the chat tab data and refresh
+            # 채팅 탭 데이터 업데이트 및 화면 갱신
             st.session_state.chat_tabs[st.session_state.current_tab] = messages
             st.rerun()

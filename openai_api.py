@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 from openai import OpenAI
 
 # OpenAI API integration
@@ -7,10 +8,12 @@ from openai import OpenAI
 # do not change this unless explicitly requested by the user
 MODEL = "gpt-4o"
 
+load_dotenv()
+
 def get_openai_client():
     """Initialize and return OpenAI client with API key"""
     # Use the provided API key or get it from environment variables
-    api_key = os.getenv("OPENAI_API_KEY", os.environ.get('OPENAI_API_KEY'))
+    api_key = os.getenv("OPENAI_API_KEY")
     return OpenAI(api_key=api_key)
 
 def get_ai_response(messages):

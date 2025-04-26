@@ -3,4 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="Python 3.9 (streamlit_sample)" />
   </component>
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.9 (docs_fairy)" project-jdk-type="Python SDK" />
 </project>
