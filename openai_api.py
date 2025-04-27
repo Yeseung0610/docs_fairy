@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
+import streamlit as st
 
 # OpenAI API integration
 
@@ -13,8 +14,9 @@ load_dotenv()
 def get_openai_client():
     """Initialize and return OpenAI client with API key"""
     # Use the provided API key or get it from environment variables
-    api_key = os.getenv("OPENAI_API_KEY")
-    return OpenAI(api_key=api_key)
+    os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+    openai_api_key = os.environ.get("OPENAI_API_KEY")
+    return OpenAI(api_key=openai_api_key)
 
 def get_ai_response(messages):
     """Get a response from the OpenAI API"""
