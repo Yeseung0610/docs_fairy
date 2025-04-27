@@ -48,7 +48,10 @@ def delete_chat(tab_name: str):
 
 
 def render_chat_interface():
-    st.title("문서 요정 🧚🏻‍")
+    st.image(
+        "./resources/KakaoTalk_Photo_2025-04-27-06-21-10.png",
+        use_container_width=True
+    )
 
     rid = random.randint(1, 1_000_000)
     st.markdown(f"""
@@ -80,15 +83,14 @@ def render_chat_interface():
                 if msg["role"] == "assistant":
                     refs = re.findall(r'\[([^\]]+)\]\(page://(\d+)\)', msg["content"])
                     if refs:
-                        cols = st.columns(len(refs))
-                        for col, (title, pid) in zip(cols, refs):
-                            with col:
-                                if st.button(f"🔗 {title} 바로가기", key=f"nav_{tab_name}_{idx}_{pid}"):
-                                    selected_id = int(pid)
-                                    st.session_state.selected_page_id = selected_id
-                                    page = db.get_page(selected_id)
-                                    st.session_state.selected_folder_id = page['folder_id']
-                                    st.rerun()
+                        for title, pid in refs:
+                            # 버튼 하나당 한 줄씩 세로로 출력됩니다.
+                            if st.button(f"🔗 {title} 바로가기", key=f"nav_{tab_name}_{idx}_{pid}"):
+                                selected_id = int(pid)
+                                st.session_state.selected_page_id = selected_id
+                                page = db.get_page(selected_id)
+                                st.session_state.selected_folder_id = page['folder_id']
+                                st.rerun()
 
             user_input = st.chat_input("메시지를 입력하세요…", key=f"input_{tab_name}")
             if not user_input:
@@ -108,7 +110,13 @@ def render_chat_interface():
                 docs.append(f"■ [{name}](page://{p['id']})\n{content}")
             system_prompt = (
                 "아래는 저장된 페이지 목록 및 내용입니다. "
+                "**반드시** 답변은 가독성이 좋게 제목, 내용등을 구분하여 \"Markdown\" 형식으로 표현합니다."
+                "문서는 질문에 내용과 일치하는 경우에만 참조해야하며, 확실하지 않은 경우 참조할 수 없습니다."
                 "답변에 문서를 인용하거나 참조할 경우, 반드시 제목을 [제목](page://id) 형식으로 링크하여 포함하십시오.\n\n"
+                "문서는 여러개를 인용 및 참조할 수 있으며, 중복된 정보가 있을 경우 모든 링크를 표시해주고, 최신 내용을 기준으로 전반적인 답변을 작성하고,"
+                "추가적으로 과거 내용과 최신 내용에서 무엇이 변경되었는지 설명하는 내용을 포함해야합니다."
+                "이에 따라 주의할 점이 있다면 주의하는 내용을 포함해 답변을 작성해야합니다."
+                "개인 문서에 있는 내용을 바탕으로 정부지원사업에 참여한 이력이 있는경우 페이지 링크를 걸어서 지원 자격에 대한 비판적인 답변을 작성해야한다."
                 + "\n\n".join(docs)
             )
 
